@@ -1,0 +1,226 @@
+<%- include('./head.new.ejs') %>
+<%- include('./style.ejs') %>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+<style>
+    body {
+        background-color: #eeeeee;
+        overflow-x: hidden;     /* No Scrollbar */
+        overflow-y:hidden;      /* No Scrollbar */
+    }
+
+    .loading {
+        border: 16px solid #aaaaaa;
+        border-radius: 50%;
+        border-top: 16px solid #555555;
+        width: 80px;
+        height: 80px;
+        -webkit-animation: spin 2s linear infinite; /* Safari */
+        animation: spin 2s linear infinite;
+    }
+    
+    /* Safari */
+    @-webkit-keyframes spin {
+        0% { -webkit-transform: rotate(0deg); }
+        100% { -webkit-transform: rotate(360deg); }
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .centered {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        /* bring your own prefixes */
+        transform: translate(-50%, -50%);
+    }
+
+</style>
+<body>
+    <div class="vcontainer" id="vcontainer">
+        <!-- <video muted id="player" width="704" height="576"></video> -->
+        <video muted id="player" width="100%"></video>
+
+        <div class="vinfo centered" id="vinfo"></div>
+        <div class="local-time" id="vtime"></div>
+        <div class="vehicle-name"><%= vehicleName %></div>
+    </div>
+
+    <div id="loader" class="centered">
+        <div class="loading"></div>
+        <div class="centered" style="font-size:16px;">Loading...</div>
+    </div>
+    
+    <!-- 
+muted: in Chrome 66
+    Uncaught (in promise) DOMException: play() failed because the user didn't interact with the document first.  
+-->
+<script>
+//document.body.style.zoom = 1; 
+const WAIT_MIN = 1;
+//const WAIT_MIN = 10;    // @@@@@ For Test @@@@@
+let idleMin = 0;
+const loader = document.getElementById('loader');
+
+$(document).ready(function() {
+    let idleInterval = setInterval(timerIncrement, 60000);  // 1 min
+    $(this).mousemove(function(e) { idleMin = 0; });
+    $(this).keypress(function(e) { idleMin = 0; });
+});
+
+function timerIncrement() {
+    idleMin++;
+    if (++idleMin >= WAIT_MIN) {
+        loader.hidden = true;
+         // alert('Windows will be closed in 5 seconds');
+        let sec10 = 10;
+        let int10 = setInterval(function() {
+            if (idleMin >= WAIT_MIN) {
+                //info.setAttribute("style","visibility:visible;");
+                info.style.cssText = "visibility:visible;font-size:38px;"  // font-size: 56px;
+                info.innerText = "This window will be closed in\n" + --sec10 + (sec10 > 1 ? " seconds." : " second.");
+            } else {
+                //info.setAttribute("style","visibility:none;");
+                info.style.cssText = "visibility:none;font-size:56px;"  // font-size: 56px;
+                clearInterval(int10);
+            }
+        }, 1000);
+        setTimeout(function(){ 
+            if (idleMin >= WAIT_MIN) window.close(); 
+        }, 10000)
+    }
+}
+
+const IMG_NO_VIDEO = "./../../images/no-video350.png";
+const WS_URL = "<%= ws_url %>"; 
+const gps_server_ip = "<%= gps_server_ip %>"; 
+const gps_server_port = "<%= gps_server_port %>"; 
+
+let large_id = '';    
+console.log('WS URL:' + WS_URL);
+console.log(`GPS Server - IP:${gps_server_ip} Port:${gps_server_port}`);
+
+
+//const WS_URL = 'ws://58.96.20.179:9131/861585042928067/';   // OK
+//const vcontainers = document.getElementsByClassName('vcontainer');
+
+const video = document.getElementById('player');
+const container = document.getElementById('vcontainer');
+
+let isUserResize = false; 
+window.onresize = function(event) {
+    event.preventDefault();
+    resizeWin();   
+}
+
+function resizeWin() {
+    if (isUserResize) {
+        isUserResize = false; 
+    } else {
+        isUserResize = true; 
+        console.log(`Video  W:${video.videoWidth}, H:${video.videoHeight}`);
+        console.log(`Offset W:${video.offsetWidth}, H:${video.offsetHeight}`);
+        window.resizeTo(video.offsetWidth + 40, video.offsetHeight + 94);
+    }
+}
+
+video.addEventListener('loadedmetadata', function() {
+    console.log('video - loadedmetadata');
+    resizeWin();
+});
+
+window.onload = function() {
+    setTimeout(() => {}, 3000);
+
+    mp4conv = new MP4Conv({
+        node: 'player', 
+        mode: 'video', 
+        fps: 18,                
+        flushingTime: 500,      // default 500
+        // below hiccup....
+        // flushingTime: 1000, 
+        // fps: 25, 
+    });
+    state = "pause";
+    cnt = 0;
+    seq = 0;
+    bytes = 0;
+
+    info = document.getElementById('vinfo');
+    time = document.getElementById('vtime');
+    time.visibility = 'hidden';
+
+    ws = new WebSocket(WS_URL);
+    //console.log(ix + ' WebSocket URL:'+ ws)
+    ws.binaryType = 'arraybuffer';
+    ws.addEventListener('message', function(event) { 
+        messageHandle(event); 
+    });
+    ws.addEventListener('error', function(error) { 
+        console.log('WebSocket Error Channel', error);
+    });
+    ws.addEventListener('close', function(event) { 
+        const url = event.target.url;
+        const ch = url.substr(url.lastIndexOf('/')+1);
+        noVideoAvailable(ch);
+    });
+
+    ws.onopen = function (event) {
+        const cmd = {gps_server_ip, gps_server_port, command:'A9A'};
+        console.log(cmd);
+        ws.send(JSON.stringify(cmd));
+		}
+    // WebSocket.readyState = 1 Connected
+    setTimeout(() => {
+        if (bytes == 0) noVideoAvailable(1);
+    }, 10000);
+}
+
+function noVideoAvailable(ix) {
+    loader.hidden = true;
+    video.pause();
+    info.innerText = "No Video Available";
+    if (bytes == 0) { 
+        video.classList.add('hide');
+    } 
+    info.setAttribute("style","visibility:visible;");
+}
+
+function showTime(ix, unixTime) {
+    let localTime = moment.unix(unixTime).format('DD/MM/YYYY HH:mm:ss');
+    //let utcTime = moment.unix(unixTime).utc().format('YYYY-MM-DD HH:mm:ss');  
+    time.innerText = localTime;
+    time.visibility = 'visible';
+}
+
+let checkSeq = 0;
+function messageHandle(event) {
+    
+    let arr = new Uint8Array(event.data, 0, 3); // 7
+    let packetNo = arr[1]*256 + arr[2];
+
+    bytes += event.data.byteLength;
+    if (packetNo > checkSeq) {
+        checkSeq += 1000;
+        console.log(packetNo + ': ' + bytes + ' bytes');
+    }
+
+    if (seq < packetNo) {
+        seq = packetNo;
+        mp4conv.feed({ video: new Uint8Array(event.data, 3) }); // 7
+    }
+    
+    if (state == 'pause') {
+        loader.hidden = true;
+        console.log(`Video offsetWidth:${video.offsetWidth} offsetHeight:${video.offsetHeight}`);
+        //console.log(`Video width:${video.clientWidth} height:${video.clientHeight}`);
+        //window.resizeTo(video.offsetWidth + 24, video.offsetHeight + 24);
+        video.play();
+        state = "play";
+    }
+}
+
+</script>
+<%- include('./end.ejs') %>

@@ -1124,10 +1124,6 @@
     return Event;
   }();
 
-  /**
-   * Generate MP4 Box
-   * taken from: https://github.com/dailymotion/hls.js
-   */
   var MP4 = /*#__PURE__*/function () {
     function MP4() {
       _classCallCheck(this, MP4);
@@ -2280,7 +2276,7 @@
 
       _classCallCheck(this, MP4Conv);
 
-      _this = _super.call(this, 'mp4conf');
+      _this = _super.call(this, 'mp4conv');
       _this.isReset = false;
       var defaults = {
         node: '',
@@ -2295,7 +2291,7 @@
         debug: false,
         onReady: function onReady() {},
         // function called when MSE is ready to accept frames
-        onError: function onError() {} // function called when mp4conf encounters any buffer related error
+        onError: function onError() {} // function called when mp4conv encounters any buffer related error
 
       };
       _this.options = Object.assign({}, defaults, options);
@@ -2543,7 +2539,7 @@
             _this2.kfPosition.push(_this2.kfCounter * fd / 1000);
           }
         });
-        log("mp4conf: No. of frames of the last chunk: ".concat(frames.length));
+        log("mp4conv: No. of frames of the last chunk: ".concat(frames.length));
         return frames;
       }
     }, {

@@ -1,0 +1,16 @@
+{
+  "name": "h264_lib",
+  "version": "1.12.9",
+  "description": "PS D:\\www\\h264_lib> git remote set-url origin git@github.com-binabo101:binabo101/h264_lib.git PS D:\\www\\h264_lib> git config user.name \"Binabo101\" PS D:\\www\\h264_lib> git config user.email \"binabo101@gmail.com\"",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com-binabo101:binabo101/h264_lib.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

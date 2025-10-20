@@ -1,10 +1,10 @@
 {
-  "name": "h264_lib",
+  "name": "h264-libr",
   "version": "1.12.9",
   "description": "PS D:\\www\\h264_lib> git remote set-url origin git@github.com-binabo101:binabo101/h264_lib.git PS D:\\www\\h264_lib> git config user.name \"Binabo101\" PS D:\\www\\h264_lib> git config user.email \"binabo101@gmail.com\"",
   "repository": {
     "type": "git",
-    "url": "git@github.com-binabo101:binabo101/h264_lib.git"
+    "url": "git@github.com-binabo101:binabo101/h264-libr.git"
   },
   "license": "ISC",
   "author": "",
